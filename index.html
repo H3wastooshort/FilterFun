@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>FilterFun</title>
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="An online YX-Oscilloscope">
+	<meta name="keywords" content="audio,xy,vector-graphics,vectorscope,xy-oscilloscope ">
+	<style>
+body {
+	background-color: #222;
+	color: #EEE;
+	font-family: sans-serif;
+}
+
+#ui_div {
+	display:flex;
+	flex-direction: row;
+}
+
+@media (max-aspect-ratio: 5/4) {
+    #ui_div {
+		flex-direction: column !important;
+    }
+}
+
+#curves_div, #control_panel {
+	height: max-content;
+	max-height: 95vh;
+	margin: 5px;
+}
+#curves_div { width: 100%; }
+#control_panel { width: calc(min(max-content, 40vw)); }
+
+#in_fft, #filter_curve, #out_fft {
+	display: block;
+	margin: auto;
+	border: 3px solid #888;
+}
+
+.control_mode { display: none; }
+
+button, input, select {
+	background-color: #333;
+	color: #FFF;
+	border: solid #AAA 2px;
+	margin: 2px;
+	border-radius: 5px;
+}
+
+.fullscreen_block {
+	display: flex;
+	justify-content:center;
+	align-items:center;
+	background: black;
+	
+	z-index: 99;
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.option_line {
+	width: 100%;
+	white-space: nowrap;
+}
+
+#start_button {
+	max-width: 90vw;
+	font-size: 3em;
+}
+</style>
+</head>
+<body>
+	<div id="ui_div">
+		<div id="curves_div">
+			<img id="circ_img" src="" title="">
+			<br>
+			<p id="circ_formula"></p>
+			<br>
+			<canvas id="in_fft" width=256 height = 64></canvas>
+			<br>
+			<canvas id="filter_curve" width=256 height = 64></canvas>
+			<br>
+			<canvas id="out_fft" width=256 height = 64></canvas>
+			<br>
+		</div>
+
+		<div id="control_panel">
+			<h1>FilterFun</h1>
+			<hr>
+			<div class="fullscreen_block"> <button id="start_button" onclick="ac.resume(); this.parentElement.remove();">CLICK TO START</button> <noscript><br>JS Required</noscript></div>
+
+			<label for="filter_circ">Circuit: </label><select onchange="selCirc();" id="filter_circ" name="filter_circ" type="select" autocomplete="off">
+				<option value="lp">Low-pass</option>
+				<option value="hp">High-pass</option>
+				<option value="bp">Band-pass</option>
+				<option value="bs">Band-stop/Notch</option>
+				<option value="ls">Low-shelf</option>
+				<option value="hs">High-shelf</option>
+			</select>
+			<div id="circ_params">
+			<span class="option_line"><label for="r_val">Resistance: </label><input type="range" min="1" value="1" max="100" step="0.1" onchange="drawCurves();"" id="r_val" autocomplete="off"> <span id="r_val_text">1</span></span>
+			<br>
+			<span class="option_line"><label for="c_val">Capacitance: </label><input type="range" min="1" value="1" max="100" step="0.1" onchange="drawCurves();";" id="c_val" autocomplete="off"> <span id="c_val_text">1</span></span>
+			<br>
+			<span class="option_line"><label for="l_val">Inductance: </label><input type="range" min="1" value="1" max="100" step="0.1" onchange="drawCurves();" id="l_val" autocomplete="off"> <span id="l_val_text">1</span></span>
+			<br>
+			</div>
+			<br>
+			<br>
+
+			<span class="option_line"><label for="audio_gain">Gain: </label><input type="range" min="0.1" value="1" max="4" step="0.1" onchange="audio_gain_text.innerText=audioGain.gain.value=this.value;" id="audio_gain" autocomplete="off"> <span id="audio_gain_text">1</span></span>
+			<br>
+			<span class="option_line"><label for="playback_vol">Playback Volume: </label><input type="range" min="0" value="1" max="2" step="0.1" onchange="playback_vol_text.innerText=audioGainO.gain.value=this.value;" id="playback_vol" autocomplete="off"> <span id="playback_vol_text">1</span></span>
+			<br>
+			<label for="input_mode">Mode: </label><select onchange="selSource();" id="input_mode" name="input_mode" type="select" autocomplete="off">
+				<option value="file">File</option>
+				<option value="mic">Mic</option>
+				<option value="osc">Oscillators</option>
+			</select>
+			<br>
+			
+			<div class="control_mode" id="file_control">
+				<input type="file" onchange="fileSel(this);" style="max-width: 20vw;" id="file_sel" autocomplete="off"><br>
+				<audio id="file_player" controls loop></audio><br>
+				<!--<span class="option_line"><label for="file_speed">Speed: </label><input type="range" min="0.01" value="1" max="2" step="0.1" id="file_speed" onchange="file_speed_text.innerText = (file_player.playbackRate=this.value) + 'x';"> <span id="file_speed_text">1x</span><button onclick="file_speed.value=1">R</button></span>-->
+			</div>
+			
+			<div class="control_mode" id="mic_control">
+			
+			</div>
+			
+			</input>
+			
+		</div>
+	</div>
+
+	<script>
+//canvas
+const cnv_in = document.getElementById('in_fft');
+const ctx_in = cnv_in.getContext('2d');
+const cnv_filt = document.getElementById('filter_curve');
+const ctx_filt = cnv_filt.getContext('2d');
+const cnv_out = document.getElementById('out_fft');
+const ctx_out = cnv_out.getContext('2d');
+//vc.imageSmoothingEnabled = false;
+ctx_in.lineWidth=ctx_filt.lineWidth=ctx_out.lineWidth = 1;
+ctx_in.strokeStyle=ctx_filt.strokeStyle=ctx_out.strokeStyle = '#FFFFFFFF';
+
+function resChange() {
+	cnv_in.width = cnv_filt.width = cnv_out.width = curves_div.clientWidth;
+	cnv_in.height = cnv_filt.height = cnv_out.height = Math.floor(curves_div.clientWidth / 4);
+}
+resChange();
+window.addEventListener('resize', resChange);
+
+
+//audio main
+const ac = new (window.AudioContext || window.webkitAudioContext)();
+const audioGain = ac.createGain();
+
+var audioAnalyzer = ac.createAnalyser();
+audioAnalyzer.fftSize=32768;
+audioGain.connect(audioAnalyzer);
+
+var audioFilter = ac.createBiquadFilter();
+audioAnalyzer.connect(audioFilter);
+
+var audioAnalyzerOut = ac.createAnalyser();
+audioAnalyzerOut.fftSize=32768;
+audioFilter.connect(audioAnalyzerOut);
+
+const audioGainOut = ac.createGain();
+audioAnalyzerOut.connect(audioGainOut);
+audioGainOut.connect(ac.destination);
+
+//audio sources
+//file
+const audioPlayer = document.getElementById("file_player");
+const audioFileSrc = ac.createMediaElementSource(audioPlayer);
+function fileSel(e) {
+	const fR = new FileReader();
+	fR.addEventListener('load', (event) => {
+		audioPlayer.src = event.target.result;
+		//audioPlayer.play();
+	});
+	fR.readAsDataURL(e.files[0]);
+}
+//mic
+var audioMic;
+function getMic() {
+	try {audioMic.disconnect();} catch {}
+	navigator.mediaDevices.getUserMedia({audio:{
+		echoCancellation: false,
+		autoGainControl: false,
+		noiseSuppression: false,
+		channelCount: 2
+	}})
+	.then((stream) => {
+			audioMic = ac.createMediaStreamSource(stream);
+			audioMic.connect(audioGain);
+	})
+	.catch((err) => {
+		alert(err);
+	});
+}
+
+//stuff
+function mapfloat(x, in_min, in_max, out_min, out_max) {//arduino style map()
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+function selSource() {
+	audioFileSrc.disconnect();
+	try {audioMic.disconnect();} catch {}
+	file_control.style.display="none";
+	mic_control.style.display="none";
+	switch (input_mode.value) {
+		case "file":
+			file_control.style.display="inline-block";
+			audioFileSrc.connect(audioGain);
+			break;
+		case "mic":
+			mic_control.style.display="inline-block";
+			getMic();
+			break;
+	}
+}
+selSource();
+
+//circ implementations
+const filters = {
+	'lp': {
+		mode: 'lowpass',
+		func: function(f,r,c,l){return 0;},
+		formula: "",
+		img: ""
+	},
+	'hp': {
+		mode: 'highpass',
+		func: function(f,r,c,l){},
+		formula: "",
+		img: ""
+	},
+	'bp': {
+		mode: 'bandpass',
+		func: function(f,r,c,l){},
+		formula: "",
+		img: ""
+	},
+	'bs': {
+		mode: 'notch',
+		func: function(f,r,c,l){},
+		formula: "",
+		img: ""
+	},
+	'ls': {
+		mode: 'lowshelf',
+		func: function(f,r,c,l){},
+		formula: "",
+		img: ""
+	},
+	'hs': {
+		mode: 'highshelf',
+		func: function(f,r,c,l){},
+		formula: "",
+		img: ""
+	}
+};
+
+function redrawCurves() {
+	ctx_filt.beginPath();
+	for (let f = 0; f < cnv_filt.width; f++) {
+		let y = filters[filter_circ.value].func((audioAnalyzerOut.frequencyBinCount/cnv_filt.width)*cnv_filt.width /*Hz per px calc*/, r_val.value, c_val.value, l_val.value);
+		if (f == 0) ctx_filt.moveTo(f,y);
+		else ctx_filt.lineTo(f,y);
+	}
+	ctx_filt.stroke();
+}
+
+//sel curve
+function selCirc() {
+	switch (filter_circ.value) {
+		case "lp":
+			break;
+		
+		case "hp":
+			break;
+		
+		case "bp":
+			break;
+		
+		case "bs":
+			break;
+		
+		case "ls":
+			break;
+		
+		case "hs":
+			break;
+
+	}
+	
+	//change filter
+	audioFilter.type = filters[filter_circ.value].mode;
+	
+	//change img etc
+	circ_img.src = filters[filter_circ.value].img;
+	circ_formula.innerHtml = filters[filter_circ.value].formula;
+	
+	
+	redrawCurves();
+	
+	
+}
+selCirc();
+
+
+//draw FFT
+function drawFFT() {
+	ctx_in.fillStyle = ctx_out.fillStyle = 'black';
+	ctx_in.fillRect(0,0,cnv_in.width,cnv_in.height);
+	ctx_out.fillRect(0,0,cnv_out.width,cnv_out.height);
+	
+	ctx_in.strokeStyle = ctx_out.strokeStyle = '#FFFFFFFF';
+	
+	let pix_per_s = cnv_filt.width / audioAnalyzerOut.frequencyBinCount;
+
+	let in_data = new Uint8Array(audioAnalyzer.frequencyBinCount);
+	audioAnalyzer.getByteFrequencyData(in_data);	
+	let out_data = new Uint8Array(audioAnalyzerOut.frequencyBinCount);
+	audioAnalyzer.getByteFrequencyData(out_data);
+
+	ctx_in.beginPath();
+	for (let i=0; i<audioAnalyzer.frequencyBinCount; i++){
+		if (i == 0) ctx_out.moveTo(pix_per_s*i, in_data[i]);
+		else ctx_out.lineTo(pix_per_s*i, out_data[i]);
+	}
+	ctx_in.stroke();
+	
+	ctx_out.beginPath();
+	for (let i=0; i<audioAnalyzerOut.frequencyBinCount; i++){
+		if (i == 0) ctx_out.moveTo(pix_per_s*i, in_data[i]);
+		else ctx_out.lineTo(pix_per_s*i, out_data[i]);
+	}
+	ctx_out.stroke();
+	
+	requestAnimationFrame(drawFFT);
+}
+drawFFT();
+
+
+	</script>
+</body>
