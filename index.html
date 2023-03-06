@@ -30,7 +30,7 @@ body {
 	margin: 5px;
 }
 #curves_div { width: 100%; }
-#control_panel { width: calc(min(max-content, 40vw)); }
+#control_panel { width: calc(min(max-content, 30vw)+10vw); }
 
 #in_fft, #filter_curve, #out_fft {
 	display: block;
@@ -46,6 +46,10 @@ button, input, select {
 	border: solid #AAA 2px;
 	margin: 2px;
 	border-radius: 5px;
+}
+
+input[type="range"] {
+	width: max_content;
 }
 
 .fullscreen_block {
@@ -116,6 +120,8 @@ button, input, select {
 			<br>
 			<br>
 
+			<span class="option_line"><label for="use_log_scale">Use log2 scale: </label><input type="checkbox" id="use_log_scale" autocomplete="off"></span>
+			<br>
 			<span class="option_line"><label for="audio_gain">Gain: </label><input type="range" min="0.1" value="1" max="4" step="0.1" onchange="audio_gain_text.innerText=audioGain.gain.value=this.value;" id="audio_gain" autocomplete="off"> <span id="audio_gain_text">1</span></span>
 			<br>
 			<span class="option_line"><label for="playback_vol">Playback Volume: </label><input type="range" min="0" value="1" max="2" step="0.1" onchange="playback_vol_text.innerText=audioGainO.gain.value=this.value;" id="playback_vol" autocomplete="off"> <span id="playback_vol_text">1</span></span>
@@ -128,9 +134,17 @@ button, input, select {
 			<br>
 			
 			<div class="control_mode" id="file_control">
-				<input type="file" onchange="fileSel(this);" style="max-width: 20vw;" id="file_sel" autocomplete="off"><br>
+				<input type="file" onchange="fileSel(this);" style="max-width: 20vw;" id="file_sel"><br>
 				<audio id="file_player" controls loop></audio><br>
 				<!--<span class="option_line"><label for="file_speed">Speed: </label><input type="range" min="0.01" value="1" max="2" step="0.1" id="file_speed" onchange="file_speed_text.innerText = (file_player.playbackRate=this.value) + 'x';"> <span id="file_speed_text">1x</span><button onclick="file_speed.value=1">R</button></span>-->
+				<p>
+					Sample Files:<br>
+					<ul>
+						<li>ROZKOL - Blood in a Cocktail Glass</a><wbr>
+						<a href="https://freemusicarchive.org/music/ROZKOL/Remnants_I_FMA_Exclusive/01_-_Blood_In_A_Cocktail_Glass/">[CC-BY]</a><br>
+						<button onclick="loadURL('sample_audio/rozkol_biacg.mp3')">PLAY</button></li>
+					</ul>
+				</p>
 			</div>
 			
 			<div class="control_mode" id="mic_control">
@@ -170,6 +184,7 @@ const audioGain = ac.createGain();
 
 var audioAnalyzer = ac.createAnalyser();
 audioAnalyzer.fftSize=32768;
+audioAnalyzer.smoothingTimeConstant = 0.1;
 audioGain.connect(audioAnalyzer);
 
 var audioFilter = ac.createBiquadFilter();
@@ -177,6 +192,7 @@ audioAnalyzer.connect(audioFilter);
 
 var audioAnalyzerOut = ac.createAnalyser();
 audioAnalyzerOut.fftSize=32768;
+audioAnalyzerOut.smoothingTimeConstant = 0.1;
 audioFilter.connect(audioAnalyzerOut);
 
 const audioGainOut = ac.createGain();
@@ -195,6 +211,11 @@ function fileSel(e) {
 	});
 	fR.readAsDataURL(e.files[0]);
 }
+function loadURL(audio_url) {
+	audioPlayer.src = audio_url;
+	audioPlayer.play();
+}
+
 //mic
 var audioMic;
 function getMic() {
@@ -213,6 +234,8 @@ function getMic() {
 		alert(err);
 	});
 }
+
+if (file_sel.files[0].name.length > 0) fileSel(file_sel);
 
 //stuff
 function mapfloat(x, in_min, in_max, out_min, out_max) {//arduino style map()
@@ -295,7 +318,7 @@ function drawCurves() {
 
 	ctx_filt.beginPath();
 	for (let f = 0; f < cnv_filt.width; f++) {
-		let y = filters[filter_circ.value].atten_f(f*(cnv_filt.width/16000/*Hz range*/), r_val.value, c_val.value, l_val.value)*1000;
+		let y = filters[filter_circ.value].atten_f((use_log_scale.checked ? Math.pow(f/10,2) : f)*(cnv_filt.width/16000/*Hz range*/), r_val.value, c_val.value, l_val.value)*1000;
 		if (f == 0) ctx_filt.moveTo(f,y);
 		else ctx_filt.lineTo(f,y);
 	}
@@ -352,8 +375,8 @@ function drawFFT() {
 	ctx_out.fillRect(0,0,cnv_out.width,cnv_out.height);
 	
 	ctx_in.strokeStyle = ctx_out.strokeStyle = 'white';
-	
-	let pix_per_s = cnv_out.width / audioAnalyzerOut.frequencyBinCount;
+
+	let scale_fac = cnv_out.width / (use_log_scale.checked ? Math.log2(audioAnalyzerOut.frequencyBinCount/2) : audioAnalyzerOut.frequencyBinCount/2);
 
 	let in_data = new Uint8Array(audioAnalyzer.frequencyBinCount);
 	audioAnalyzer.getByteFrequencyData(in_data);	
@@ -362,15 +385,15 @@ function drawFFT() {
 
 	ctx_in.beginPath();
 	for (let i=0; i<audioAnalyzer.frequencyBinCount; i++){
-		if (i == 0) ctx_out.moveTo(pix_per_s*i, in_data[i]);
-		else ctx_in.lineTo(pix_per_s*i, mapfloat(in_data[i], 0, 255, cnv_in.height, 0));
+		if (i == 0) ctx_out.moveTo(0, in_data[i]);
+		else ctx_in.lineTo((use_log_scale.checked ? Math.log2(i) : i )*scale_fac, mapfloat(in_data[i], 0, 255, cnv_in.height, 0));
 	}
 	ctx_in.stroke();
 	
 	ctx_out.beginPath();
 	for (let i=0; i<audioAnalyzerOut.frequencyBinCount; i++){
-		if (i == 0) ctx_out.moveTo(pix_per_s*i, in_data[i]);
-		else ctx_out.lineTo(pix_per_s*i, mapfloat(out_data[i], 0, 255, cnv_out.height, 0));
+		if (i == 0) ctx_out.moveTo(0, in_data[i]);
+		else ctx_out.lineTo((use_log_scale.checked ? Math.log2(i) : i)*scale_fac, mapfloat(out_data[i], 0, 255, cnv_out.height, 0));
 	}
 	ctx_out.stroke();
 	
