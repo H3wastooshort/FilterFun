@@ -77,15 +77,25 @@ input[type="range"] {
 	max-width: 90vw;
 	font-size: 3em;
 }
-</style>
+
+.circ_formula {
+	display: none;
+}</style>
 </head>
 <body>
 	<div id="ui_div">
 		<div id="curves_div">
 			<img id="circ_img" src="" title="">
 			<br>
-			<p id="circ_formula"></p>
+			
+			<p id="lp_formula" class="circ_formula">fc=1/(2πRC)<br>Uout(f)=</p>
+			<p id="hp_formula" class="circ_formula">fc=1/(2πRC)<br></p>
+			<p id="bp_formula" class="circ_formula"></p>
+			<p id="bs_formula" class="circ_formula"></p>
+			<p id="ls_formula" class="circ_formula"></p>
+			<p id="hs_formula" class="circ_formula"></p>
 			<br>
+			
 			<p>Cutoff: <span id="cutoff_freq_text"></span></p>
 			<br>
 			<canvas id="in_fft" width=256 height =64></canvas>
@@ -140,6 +150,13 @@ input[type="range"] {
 				<p>
 					Sample Files:<br>
 					<ul>
+						<li>White Noise</a><wbr>
+						<button onclick="loadURL('sample_audio/white5s.flac')">PLAY</button></li>
+						<li>Pink Noise</a><wbr>
+						<button onclick="loadURL('sample_audio/pink5s.flac')">PLAY</button></li>
+						<li>Brown Noise</a><wbr>
+						<button onclick="loadURL('sample_audio/brown5s.flac')">PLAY</button></li>
+						
 						<li>ROZKOL - Blood in a Cocktail Glass</a><wbr>
 						<a href="https://freemusicarchive.org/music/ROZKOL/Remnants_I_FMA_Exclusive/01_-_Blood_In_A_Cocktail_Glass/">[CC-BY]</a><br>
 						<button onclick="loadURL('sample_audio/rozkol_biacg.mp3')">PLAY</button></li>
@@ -158,6 +175,14 @@ input[type="range"] {
 
 	<script>
 const PI = Math.PI;
+
+window.addEventListener("error", (e) => {
+	console.error(e.error);
+	let errorstr = "Uh oh. An error ocurred!\n"
+	errorstr += e.message;
+	errorstr += "\n\nIt ocurred in " + e.filename + "\non line " + e.lineno + ", column " + e.colno;
+	alert(errorstr);
+});
 
 //canvas
 const cnv_in = document.getElementById('in_fft');
@@ -207,7 +232,7 @@ function fileSel(e) {
 	const fR = new FileReader();
 	fR.addEventListener('load', (event) => {
 		audioPlayer.src = event.target.result;
-		//audioPlayer.play();
+		audioPlayer.play();
 	});
 	fR.readAsDataURL(e.files[0]);
 }
@@ -235,7 +260,7 @@ function getMic() {
 	});
 }
 
-if (file_sel.files[0].name.length > 0) fileSel(file_sel);
+if (typeof file_sel.files[0] != 'undefined') if (file_sel.files[0].name.length > 0) fileSel(file_sel); //if a file is autocompleted into the file field, load it
 
 //stuff
 function mapfloat(x, in_min, in_max, out_min, out_max) {//arduino style map()
@@ -260,26 +285,28 @@ function selSource() {
 }
 selSource();
 
+function pythag(a,b) {return Math.sqrt(Math.pow(a,2) + Math.pow(b,2));}
+
 //circ implementations
 const filters = {
 	'lp': {
 		mode: 'lowpass',
 		atten_f: function(f,r,c,l){
-			let Xc = 1/(2*PI*f*c); //AC impedance formula
-			return r/(Xc*r); //resistor divider formula
+			let Xc = 1/(2*PI*f*c);
+			let Z = pythag(r,Xc);
+			return (1/Z)/*<-- I*/ * Xc; //falls from 1 to 0
 		},
 		cutoff: function(r,c,l){return fc=1/(2*PI*r*c);},
-		formula: "fc=1/(2πRC)",
 		img: ""
 	},
 	'hp': {
 		mode: 'highpass',
 		atten_f: function(f,r,c,l){
-			let Xc = 1/(2*PI*f*c); //AC impedance formula
-			return Xc/(Xc*r); //resistor divider formula
+			let Xc = 1/(2*PI*f*c);
+			let Z = pythag(r,Xc);
+			return (1/Xc)/*<-- I*/ * Z;
 		},
 		cutoff: function(r,c,l){return fc=1/(2*PI*r*c);},
-		formula: "fc=1/(2πRC)",
 		img: ""
 	},
 	'bp': {
@@ -293,21 +320,18 @@ const filters = {
 		mode: 'notch',
 		atten_f: function(f,r,c,l){},
 		cutoff: function(r,c,l){},
-		formula: "",
 		img: ""
 	},
 	'ls': {
 		mode: 'lowshelf',
 		atten_f: function(f,r,c,l){},
 		cutoff: function(r,c,l){},
-		formula: "",
 		img: ""
 	},
 	'hs': {
 		mode: 'highshelf',
 		atten_f: function(f,r,c,l){},
 		cutoff: function(r,c,l){},
-		formula: "",
 		img: ""
 	}
 };
@@ -358,12 +382,10 @@ function selCirc() {
 	
 	//change img etc
 	circ_img.src = filters[filter_circ.value].img;
-	circ_formula.innerHtml = filters[filter_circ.value].formula;
+	
 	
 	
 	drawCurves();
-	
-	
 }
 selCirc();
 
