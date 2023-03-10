@@ -11,11 +11,14 @@ body {
 	background-color: #222;
 	color: #EEE;
 	font-family: sans-serif;
+	width: 95vw;
 }
 
 #ui_div {
 	display:flex;
 	flex-direction: row;
+	height: 95vh;
+	width: 95vw;
 }
 
 @media (max-aspect-ratio: 5/4) {
@@ -25,12 +28,14 @@ body {
 }
 
 #curves_div, #control_panel {
-	height: 80vh;
+	height: 90vh;
 	max-height: 95vh;
 	margin: 5px;
 }
-#curves_div { width: 100%; }
-#control_panel { width: calc(min(max-content, 30vw)+10vw); }
+#curves_div {
+	width: 100%;
+}
+#control_panel { width: calc(min(300px, 20vw)+10vw); }
 
 #in_fft, #filter_curve, #out_fft {
 	display: block;
@@ -49,7 +54,7 @@ button, input, select {
 }
 
 input[type="range"] {
-	width: max_content;
+	width: max-content;
 }
 
 .fullscreen_block {
@@ -85,7 +90,8 @@ input[type="range"] {
 @keyframes fileblink {
 	from {border-color:#3ee;}
 	to {border-color:#e3e;}
-}</style>
+}
+</style>
 </head>
 <body>
 	<div id="ui_div">
@@ -103,12 +109,11 @@ input[type="range"] {
 			
 			<p>Cutoff: <span id="cutoff_freq_text"></span></p>
 			<br>
-			<canvas id="in_fft" width=256 height =64></canvas>
-			<br>
-			<canvas id="filter_curve" width=256 height =64></canvas>
-			<br>
-			<canvas id="out_fft" width=256 height =64></canvas>
-			<br>
+			<table>
+			<tr><td><span onclick="helpme('in_curve');" class="helptext">Input:</span></td><td><canvas id="in_fft" width=256 height=64></canvas></td></tr>
+			<tr><td><span onclick="helpme('in_curve');" class="helptext">Filter:</span></td><td><canvas id="filter_curve" width=256 height=64></canvas></td></tr>
+			<tr><td><span onclick="helpme('in_curve');" class="helptext">Output:</span></td><td><canvas id="out_fft" width=256 height=64></canvas></td></tr>
+			</table>
 		</div>
 
 		<div id="control_panel">
