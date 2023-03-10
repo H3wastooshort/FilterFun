@@ -80,6 +80,11 @@ input[type="range"] {
 
 .circ_formula {
 	display: none;
+}
+
+@keyframes fileblink {
+	from {border-color:#3ee;}
+	to {border-color:#e3e;}
 }</style>
 </head>
 <body>
@@ -195,27 +200,19 @@ const ctx_out = cnv_out.getContext('2d');
 ctx_in.lineWidth=ctx_filt.lineWidth=ctx_out.lineWidth = 1;
 ctx_in.strokeStyle=ctx_filt.strokeStyle=ctx_out.strokeStyle = 'white';
 
-function resChange() {
-	cnv_in.width = cnv_filt.width = cnv_out.width = curves_div.clientWidth;
-	cnv_in.height = cnv_filt.height = cnv_out.height = Math.floor(curves_div.clientHeight / 4);
-}
-resChange();
-window.addEventListener('resize', resChange);
-
-
 //audio main
-var ac = new (window.AudioContext || window.webkitAudioContext)();
-var audioGain = ac.createGain();
+const ac = new (window.AudioContext || window.webkitAudioContext)();
+const audioGain = ac.createGain();
 
-var audioAnalyzer = ac.createAnalyser();
+const audioAnalyzer = ac.createAnalyser();
 audioAnalyzer.fftSize=32768;
 audioAnalyzer.smoothingTimeConstant = 0.1;
 audioGain.connect(audioAnalyzer);
 
-var audioFilter = ac.createBiquadFilter();
+const audioFilter = ac.createBiquadFilter();
 audioAnalyzer.connect(audioFilter);
 
-var audioAnalyzerOut = ac.createAnalyser();
+const audioAnalyzerOut = ac.createAnalyser();
 audioAnalyzerOut.fftSize=32768;
 audioAnalyzerOut.smoothingTimeConstant = 0.1;
 audioFilter.connect(audioAnalyzerOut);
@@ -229,9 +226,11 @@ audioGainOut.connect(ac.destination);
 const audioPlayer = document.getElementById("file_player");
 const audioFileSrc = ac.createMediaElementSource(audioPlayer);
 function fileSel(e) {
+	file_sel.style.animation="fileblink alternate 1s infinite ease-in-out";
 	const fR = new FileReader();
 	fR.addEventListener('load', (event) => {
 		audioPlayer.src = event.target.result;
+		file_sel.style.animation='initial';
 		audioPlayer.play();
 	});
 	fR.readAsDataURL(e.files[0]);
@@ -295,7 +294,7 @@ const filters = {
 		atten_f: function(f,r,c,l){
 			let Xc = 1/(2*PI*f*c);
 			let Z = pythag_hyp(r,Xc);
-			return (1/Z)/*<-- I*/ * Xc; //falls from 1 to 0
+			return (1/Z /*<-- I*/) * Xc; //falls from 1 to 0
 		},
 		cutoff: function(r,c,l){return 1/(2*PI*r*c);},
 		img: ""
@@ -305,7 +304,7 @@ const filters = {
 		atten_f: function(f,r,c,l){
 			let Xc = 1/(2*PI*f*c);
 			let Z = pythag(Xc,r);
-			return (1/Z)/*<-- I*/ * r;
+			return (1/Z /*<-- I*/) * r;
 		},
 		cutoff: function(r,c,l){return 1/(2*PI*r*c);},
 		img: ""
@@ -338,56 +337,19 @@ const filters = {
 };
 
 function drawCurves() {
-	ctx_filt.fillStyle = 'black';
-	ctx_filt.fillRect(0,0,cnv_in.width,cnv_in.height);
-
-	let freqs  = new Float32Array(cnv_filt.width);
-	let atten  = new Float32Array(cnv_filt.width);
-	let phase  = new Float32Array(cnv_filt.width);
-	
-	let hz_per_px = 16000 / cnv_filt.width;
-	for (i=0;i<freqs.length;i++) {
-		freqs[i] = i * hz_per_px;
-	}
-	
-	audioFilter.getFrequencyResponse(freqs,atten,phase);
-
-	ctx_filt.strokeStyle = 'cyan';
-	ctx_filt.beginPath();
-	for (let i = 0; i < cnv_filt.width; i++) {
-		let y = mapfloat(atten[i], 0, ac.sampleRate/2, cnv_filt.height, 0);
-		if (i == 0) ctx_filt.moveTo(0,y);
-		else ctx_filt.lineTo(i,y);
-	}
-	ctx_filt.stroke();
-	
-
-	ctx_filt.strokeStyle = 'white';
-	ctx_filt.beginPath();
-	for (let f = 0; f < cnv_filt.width; f++) {
-		let y = cnv_filt.height - filters[filter_circ.value].atten_f((use_log_scale.checked ? Math.pow(f/10,2) : f)*hz_per_px, r_val.value, c_val.value, l_val.value)*cnv_filt.height;
-		if (f == 0) ctx_filt.moveTo(0,y);
-		else ctx_filt.lineTo(f,y);
-	}
-	ctx_filt.stroke();
-	
 	r_val_text.innerText = r_val.value + "Ω";
 	c_val_text.innerText = (c_val.value * 1E6) + "µF";
 	l_val_text.innerText = (l_val.value * 1E6) + "µH";
 	cutoff_freq_text.innerText = (audioFilter.frequency.value = filters[filter_circ.value].cutoff(r_val.value,c_val.value,l_val.value)) + 'Hz';
 	
-	ctx_filt.strokeStyle = 'red';
-	ctx_filt.beginPath();
-	ctx_filt.moveTo(audioFilter.frequency.value/hz_per_px,0);
-	ctx_filt.lineTo(audioFilter.frequency.value/hz_per_px,cnv_filt.height);
-	ctx_filt.stroke();
-	
-	ctx_filt.strokeStyle = 'white';
-}
+	audioFilter.Q.value = 0;
 
-//sel curve
-function selCirc() {
-	switch (filter_circ.value) {
+	ctx_filt.fillStyle = 'black';
+	ctx_filt.fillRect(0,0,cnv_in.width,cnv_in.height);
+
+	ctx_filt.fillStyle = 'crimson';
+		switch (filter_circ.value) {
+		//mark filtered area
 		case "lp":
 			break;
 		
@@ -407,6 +369,58 @@ function selCirc() {
 			break;
 
 	}
+	ctx_filt.fillStyle = 'black';
+	
+
+	let freqs  = new Float32Array(cnv_filt.width);
+	let atten  = new Float32Array(cnv_filt.width);
+	let phase  = new Float32Array(cnv_filt.width);
+	
+	let hz_per_px = 16000 / cnv_filt.width;
+	for (i=0;i<freqs.length;i++) {
+		freqs[i] = i * hz_per_px;
+	}
+	
+	audioFilter.getFrequencyResponse(freqs,atten,phase);
+
+	ctx_filt.strokeStyle = 'cyan';
+	ctx_filt.beginPath();
+	for (let i = 0; i < cnv_filt.width; i++) {
+		let y = cnv_filt.height - (atten[i] * cnv_filt.height);
+		if (i == 0) ctx_filt.moveTo(0,y);
+		else ctx_filt.lineTo(i,y);
+	}
+	ctx_filt.stroke();
+	
+
+	ctx_filt.strokeStyle = 'white';
+	ctx_filt.beginPath();
+	for (let f = 0; f < cnv_filt.width; f++) {
+		let y = cnv_filt.height - filters[filter_circ.value].atten_f((use_log_scale.checked ? Math.pow(f/10,2) : f)*hz_per_px, r_val.value, c_val.value, l_val.value)*cnv_filt.height;
+		if (f == 0) ctx_filt.moveTo(0,y);
+		else ctx_filt.lineTo(f,y);
+	}
+	ctx_filt.stroke();
+	
+	ctx_filt.strokeStyle = 'red';
+	ctx_filt.beginPath();
+	ctx_filt.moveTo(audioFilter.frequency.value/hz_per_px,0);
+	ctx_filt.lineTo(audioFilter.frequency.value/hz_per_px,cnv_filt.height);
+	ctx_filt.stroke();
+	
+	ctx_filt.strokeStyle = 'white';
+}
+
+function resChange() {
+	cnv_in.width = cnv_filt.width = cnv_out.width = curves_div.clientWidth;
+	cnv_in.height = cnv_filt.height = cnv_out.height = Math.floor(curves_div.clientHeight / 4);
+	drawCurves();
+}
+resChange();
+window.addEventListener('resize', resChange);
+
+//sel curve
+function selCirc() {
 	
 	//change filter
 	audioFilter.type = filters[filter_circ.value].mode;
