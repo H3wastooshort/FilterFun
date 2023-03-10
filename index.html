@@ -91,6 +91,11 @@ input[type="range"] {
 	from {border-color:#3ee;}
 	to {border-color:#e3e;}
 }
+
+.helptext {
+	cursor: help;
+	text-decoration: underline dashed;
+}
 </style>
 </head>
 <body>
@@ -110,9 +115,9 @@ input[type="range"] {
 			<p>Cutoff: <span id="cutoff_freq_text"></span></p>
 			<br>
 			<table>
-			<tr><td><span onclick="helpme('in_curve');" class="helptext">Input:</span></td><td><canvas id="in_fft" width=256 height=64></canvas></td></tr>
-			<tr><td><span onclick="helpme('in_curve');" class="helptext">Filter:</span></td><td><canvas id="filter_curve" width=256 height=64></canvas></td></tr>
-			<tr><td><span onclick="helpme('in_curve');" class="helptext">Output:</span></td><td><canvas id="out_fft" width=256 height=64></canvas></td></tr>
+			<tr><td onclick="helpme('in_curve');" class="helptext">Input:</td><td><canvas id="in_fft" width=256 height=64></canvas></td></tr>
+			<tr><td onclick="helpme('filter_curve');" class="helptext">Filter:</td><td><canvas id="filter_curve" width=256 height=64></canvas></td></tr>
+			<tr><td onclick="helpme('out_curve');" class="helptext">Output:</td><td><canvas id="out_fft" width=256 height=64></canvas></td></tr>
 			</table>
 		</div>
 
@@ -193,6 +198,16 @@ window.addEventListener("error", (e) => {
 	errorstr += "\n\nIt ocurred in " + e.filename + "\non line " + e.lineno + ", column " + e.colno;
 	alert(errorstr);
 });
+
+
+const helptexts = {
+	'in_curve': "This graph shows the amplitude of frequencies in the input signal.",
+	'filter_curve': "This curve shows the filter response. \nThe white trace shows the behavior of the filter in real life, \nthe cyan one how the audio is actually filtered, because JS WebAudio can't do that type of filter perfectly.",
+	'out_curve': "This graph shows the amplitude of frequencies of the signal after it has been filtered."
+};
+function helpme(tag) {
+	alert(helptexts[tag]);
+}
 
 //canvas
 const cnv_in = document.getElementById('in_fft');
