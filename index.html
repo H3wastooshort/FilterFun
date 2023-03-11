@@ -28,6 +28,7 @@ body {
 }
 
 #curves_div, #control_panel {
+	display: block;
 	height: 90vh;
 	max-height: 95vh;
 	margin: 5px;
@@ -234,7 +235,7 @@ ctx_in.strokeStyle=ctx_filt.strokeStyle=ctx_out.strokeStyle = 'white';
 
 //audio main
 const ac = new (window.AudioContext || window.webkitAudioContext)();
-const max_freq = ac.sampleRate/2;
+const max_freq = ac.sampleRate/2/2;
 max_freq_text.innerText=max_freq;
 
 const audioGain = ac.createGain();
