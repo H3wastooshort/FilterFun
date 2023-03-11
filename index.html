@@ -4,8 +4,8 @@
 	<title>FilterFun</title>
 	<meta charset="utf-8"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta name="description" content="An online YX-Oscilloscope">
-	<meta name="keywords" content="audio,xy,vector-graphics,vectorscope,xy-oscilloscope ">
+	<meta name="description" content="Play around with analog filters">
+	<meta name="keywords" content="">
 	<style>
 body {
 	background-color: #222;
@@ -96,7 +96,14 @@ input[type="range"] {
 	cursor: help;
 	text-decoration: underline dashed;
 }
-</style>
+
+.scale_line {
+	display:inline-block;
+	margin: 4px;
+	width: 93%;
+	height: 2px;
+	border-bottom: 3px dashed #eee;
+}</style>
 </head>
 <body>
 	<div id="ui_div">
@@ -115,6 +122,7 @@ input[type="range"] {
 			<p>Cutoff: <span id="cutoff_freq_text"></span></p>
 			<br>
 			<table>
+			<tr><td></td><td>0Hz<span class="scale_line"> </span><span id="max_freq_text">?</span>Hz</td></tr>
 			<tr><td onclick="helpme('in_curve');" class="helptext">Input:</td><td><canvas id="in_fft" width=256 height=64></canvas></td></tr>
 			<tr><td onclick="helpme('filter_curve');" class="helptext">Filter:</td><td><canvas id="filter_curve" width=256 height=64></canvas></td></tr>
 			<tr><td onclick="helpme('out_curve');" class="helptext">Output:</td><td><canvas id="out_fft" width=256 height=64></canvas></td></tr>
@@ -226,6 +234,9 @@ ctx_in.strokeStyle=ctx_filt.strokeStyle=ctx_out.strokeStyle = 'white';
 
 //audio main
 const ac = new (window.AudioContext || window.webkitAudioContext)();
+const max_freq = ac.sampleRate/2;
+max_freq_text.innerText=max_freq;
+
 const audioGain = ac.createGain();
 
 const audioAnalyzer = ac.createAnalyser();
@@ -371,6 +382,9 @@ function drawCurves() {
 	ctx_filt.fillStyle = 'black';
 	ctx_filt.fillRect(0,0,cnv_in.width,cnv_in.height);
 
+	let scale_fac = (cnv_out.width * Math.log(2)) / Math.log(cnv_out.width); //log2(w)*x = w
+
+
 	ctx_filt.fillStyle = 'crimson';
 		switch (filter_circ.value) {
 		//mark filtered area
@@ -400,11 +414,10 @@ function drawCurves() {
 	let atten  = new Float32Array(cnv_filt.width);
 	let phase  = new Float32Array(cnv_filt.width);
 	
-	let hz_per_px = 16000 / cnv_filt.width;
+	let hz_per_px = max_freq / cnv_filt.width;
 	for (i=0;i<freqs.length;i++) {
 		freqs[i] = i * hz_per_px;
 	}
-	
 	audioFilter.getFrequencyResponse(freqs,atten,phase);
 
 	ctx_filt.strokeStyle = 'cyan';
@@ -412,7 +425,7 @@ function drawCurves() {
 	for (let i = 0; i < cnv_filt.width; i++) {
 		let y = cnv_filt.height - (atten[i] * cnv_filt.height * 0.75);
 		if (i == 0) ctx_filt.moveTo(0,y);
-		else ctx_filt.lineTo(use_log_scale.checked ? Math.pow(i/10,2) : i, y);
+		else ctx_filt.lineTo(use_log_scale.checked ? Math.log2(i)*scale_fac : i, y);
 	}
 	ctx_filt.stroke();
 	
@@ -420,16 +433,16 @@ function drawCurves() {
 	ctx_filt.strokeStyle = 'white';
 	ctx_filt.beginPath();
 	for (let f = 0; f < cnv_filt.width; f++) {
-		let y = cnv_filt.height - filters[filter_circ.value].atten_f((use_log_scale.checked ? Math.pow(f/10,2) : f)*hz_per_px, r_val.value, c_val.value, l_val.value)*cnv_filt.height;
+		let y = cnv_filt.height - filters[filter_circ.value].atten_f(f*hz_per_px, r_val.value, c_val.value, l_val.value)*cnv_filt.height;
 		if (f == 0) ctx_filt.moveTo(0,y);
-		else ctx_filt.lineTo(f,y);
+		else ctx_filt.lineTo(use_log_scale.checked ? Math.log2(f)*scale_fac : f ,y);
 	}
 	ctx_filt.stroke();
 	
 	ctx_filt.strokeStyle = 'red';
 	ctx_filt.beginPath();
-	ctx_filt.moveTo(use_log_scale.checked ? Math.pow(audioFilter.frequency.value/hz_per_px/10,2) : audioFilter.frequency.value/hz_per_px,0);
-	ctx_filt.lineTo(use_log_scale.checked ? Math.pow(audioFilter.frequency.value/hz_per_px/10,2) : audioFilter.frequency.value/hz_per_px,cnv_filt.height);
+	ctx_filt.moveTo(use_log_scale.checked ? Math.log2(audioFilter.frequency.value/hz_per_px)*scale_fac : audioFilter.frequency.value/hz_per_px,0);
+	ctx_filt.lineTo(use_log_scale.checked ? Math.log2(audioFilter.frequency.value/hz_per_px)*scale_fac : audioFilter.frequency.value/hz_per_px, cnv_filt.height);
 	ctx_filt.stroke();
 	
 	ctx_filt.strokeStyle = 'white';
@@ -478,14 +491,14 @@ function drawFFT() {
 	ctx_in.beginPath();
 	for (let i=0; i<audioAnalyzer.frequencyBinCount; i++){
 		if (i == 0) ctx_out.moveTo(0, in_data[i]);
-		else ctx_in.lineTo((use_log_scale.checked ? Math.log2(i) : i )*scale_fac, mapfloat(in_data[i], 0, 255, cnv_in.height, 0));
+		else ctx_in.lineTo((use_log_scale.checked ? Math.log2(i)*scale_fac : i*scale_fac), mapfloat(in_data[i], 0, 255, cnv_in.height, 0));
 	}
 	ctx_in.stroke();
 	
 	ctx_out.beginPath();
 	for (let i=0; i<audioAnalyzerOut.frequencyBinCount; i++){
 		if (i == 0) ctx_out.moveTo(0, in_data[i]);
-		else ctx_out.lineTo((use_log_scale.checked ? Math.log2(i) : i)*scale_fac, mapfloat(out_data[i], 0, 255, cnv_out.height, 0));
+		else ctx_out.lineTo((use_log_scale.checked ? Math.log2(i)*scale_fac : i*scale_fac), mapfloat(out_data[i], 0, 255, cnv_out.height, 0));
 	}
 	ctx_out.stroke();
 	
