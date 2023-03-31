@@ -427,36 +427,36 @@ function drawFFT() {
 	let osc_scale = 8;
 	//let osc_scale = (audioAnalyzerOut.frequencyBinCount/cnv_osc_out.width)/2;
 	let max_x=0, max_y=0;
-	/*for (let i=0; i<audioAnalyzer.frequencyBinCount-cnv_osc_out.width; i++){ //find high spot
+	for (let i=0; i<128/*audioAnalyzer.frequencyBinCount-(cnv_osc_out.width*osc_scale)*/; i++){ //find high spot
 		if(in_osc_data[i] >= max_y) {
 			max_y = in_osc_data[i];
 			max_x=i;
 		}
-	}*/
+	}
 	max_x=Math.min(max_x, (audioAnalyzer.frequencyBinCount-1)-cnv_osc_in.width);
 	ctx_osc_in.beginPath();
-	for (let x=max_x; x<max_x+cnv_osc_in.width; x++){
-		let y = mapfloat(in_osc_data[x*osc_scale], 0, 255, cnv_osc_in.height-1, 0);
-		//if ((max_x+cnv_osc_in.width)-x < 16) y = ((y+128)*(((max_x+cnv_osc_in.width)-x+1)/16))-128; //"suck in effect"
+	for (let x=0; x<cnv_osc_in.width; x++){
+		let y = mapfloat(in_osc_data[(x*osc_scale)+max_x], 0, 255, cnv_osc_in.height-1, 0);
+		//if ((cnv_osc_in.width)-x < 16) y = ((y+128)*(((cnv_osc_in.width)-x+1)/16))-128; //"suck in effect"
 		if (x == 0) ctx_osc_in.moveTo(0, y);
-		else ctx_osc_in.lineTo(x-max_x, y);
+		else ctx_osc_in.lineTo(x, y);
 	}
 	ctx_osc_in.stroke();
 	
-	max_x=0;
+	/*max_x=0;
 	max_y=0;
-	/*for (let i=0; i<audioAnalyzerOut.frequencyBinCount-cnv_osc_out.width; i++){ //find high spot
+	for (let i=0; i<audioAnalyzerOut.frequencyBinCount-(cnv_osc_out.width*osc_scale); i++){ //find high spot
 		if(in_osc_data[i] >= max_y) {
 			max_y = in_osc_data[i];
 			max_x=i;
 		}
 	}*/
 	ctx_osc_out.beginPath();
-	for (let x=max_x; x<max_x+cnv_osc_out.width; x++){
-		let y = mapfloat(out_osc_data[x*osc_scale], 0, 255, cnv_osc_out.height-1, 0);
+	for (let x=0; x<cnv_osc_out.width; x++){
+		let y = mapfloat(out_osc_data[(x*osc_scale)+max_x], 0, 255, cnv_osc_out.height-1, 0);
 		//if (x < 16) y = ((y128)*(x+1)/16); //"expand out effect"
 		if (x == 0) ctx_osc_out.moveTo(0, y);
-		else ctx_osc_out.lineTo(x-max_x, y);
+		else ctx_osc_out.lineTo(x, y);
 	}
 	ctx_osc_out.stroke();
 	
