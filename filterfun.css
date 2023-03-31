@@ -2,14 +2,22 @@ body {
 	background-color: #222;
 	color: #EEE;
 	font-family: sans-serif;
-	width: 95vw;
+	overflow: hidden;
 }
 
 #ui_div {
 	display:flex;
 	flex-direction: row;
-	height: 95vh;
-	width: 95vw;
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	margin: none;
+	padding: none;
 }
 
 @media (max-aspect-ratio: 5/4) {
@@ -20,14 +28,17 @@ body {
 
 #curves_div, #control_panel {
 	display: block;
-	height: 90vh;
-	max-height: 95vh;
+	height: 100%;
 	margin: 5px;
 }
 #curves_div {
 	width: 100%;
+	overflow-y: scroll;
 }
-#control_panel { width: calc(min(300px, 20vw)+10vw); }
+#control_panel {
+	width: calc(max-content+25px);
+	overflow: scroll;
+}
 
 #in_fft, #filter_curve, #out_fft {
 	display: block;
@@ -120,4 +131,8 @@ input[type="range"] {
 #circ_div canvas, #circ_img {
 	image-rendering: pixelated;
 	height: 100%;
+}
+
+#circ_params input {
+	width: 50%;
 }

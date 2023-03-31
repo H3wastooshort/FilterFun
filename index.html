@@ -7,6 +7,7 @@
 	<meta name="description" content="Play around with analog filters">
 	<meta name="keywords" content="">
 	<link rel="stylesheet" href="filterfun.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
 <body>
 	<div id="ui_div">
@@ -24,10 +25,20 @@
 			<p id="bs_formula" class="circ_formula"></p>
 			<p id="ls_formula" class="circ_formula"></p>
 			<p id="hs_formula" class="circ_formula"></p>
-			<br>
 			
 			<p>Cutoff: <span id="cutoff_freq_text"></span></p>
 			<br>
+			
+			<div id="circ_params">
+			<span class="option_line"><label for="r_val">Resistance: </label><input type="range" min="1" value="50" max="1000" step="0.1" onchange="drawCurves();" id="r_val" autocomplete="off"> <span id="r_val_text">?</span></span>
+			<br>
+			<span class="option_line"><label for="c_val">Capacitance: </label><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="c_val" autocomplete="off"> <span id="c_val_text">?</span></span>
+			<br>
+			<span class="option_line"><label for="l_val">Inductance: </label><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="l_val" autocomplete="off"> <span id="l_val_text">?</span></span>
+			<br>
+			</div>
+			<br>
+			
 			<table>
 			<tr><td></td><td><span class="scale_left">0Hz</span><span class="scale_line"> </span><span class="scale_right"><span id="max_freq_text">?</span>Hz</span></td></tr>
 			<tr><td onclick="helpme('in_curve');" class="helptext">Input:</td><td><canvas id="in_fft" width=256 height=64></canvas></td></tr>
@@ -51,14 +62,14 @@
 				<option value="ls">Low-shelf</option>
 				<option value="hs">High-shelf</option>
 			</select>
-			<div id="circ_params">
+			<!--<div id="circ_params">
 			<span class="option_line"><label for="r_val">Resistance: </label><input type="range" min="1" value="50" max="1000" step="0.1" onchange="drawCurves();" id="r_val" autocomplete="off"> <span id="r_val_text">?</span></span>
 			<br>
 			<span class="option_line"><label for="c_val">Capacitance: </label><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="c_val" autocomplete="off"> <span id="c_val_text">?</span></span>
 			<br>
 			<span class="option_line"><label for="l_val">Inductance: </label><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="l_val" autocomplete="off"> <span id="l_val_text">?</span></span>
 			<br>
-			</div>
+			</div>-->
 			<br>
 			<br>
 
@@ -139,7 +150,7 @@ const cnv_osc_in = document.getElementById('in_osc');
 const ctx_osc_in = cnv_osc_in.getContext('2d');
 const cnv_osc_out = document.getElementById('out_osc');
 const ctx_osc_out = cnv_osc_out.getContext('2d');
-//vc.imageSmoothingEnabled = false;
+cnv_osc_in.imageSmoothingEnabled = ctx_osc_out.imageSmoothingEnabled = false;
 ctx_osc_in.lineWidth=ctx_osc_out.lineWidth=ctx_in.lineWidth=ctx_filt.lineWidth=ctx_out.lineWidth = 1;
 ctx_osc_in.strokeStyle=ctx_osc_out.strokeStyle=ctx_in.strokeStyle=ctx_filt.strokeStyle=ctx_out.strokeStyle = 'white';
 ctx_osc_in.fillStyle = ctx_osc_out.fillStyle = 'black';
@@ -254,7 +265,7 @@ const filters = {
 			return (1/Z /*<-- I*/) * r;
 		},
 		cutoff: function(r,c,l){return 1/(2*PI*r*c);},
-		img: "circ_img/rc_lp.png"
+		img: "circ_img/rc_hp.png"
 	},
 	'bp': {
 		mode: 'bandpass',
