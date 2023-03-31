@@ -6,110 +6,16 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="description" content="Play around with analog filters">
 	<meta name="keywords" content="">
-	<style>
-body {
-	background-color: #222;
-	color: #EEE;
-	font-family: sans-serif;
-	width: 95vw;
-}
-
-#ui_div {
-	display:flex;
-	flex-direction: row;
-	height: 95vh;
-	width: 95vw;
-}
-
-@media (max-aspect-ratio: 5/4) {
-    #ui_div {
-		flex-direction: column !important;
-    }
-}
-
-#curves_div, #control_panel {
-	display: block;
-	height: 90vh;
-	max-height: 95vh;
-	margin: 5px;
-}
-#curves_div {
-	width: 100%;
-}
-#control_panel { width: calc(min(300px, 20vw)+10vw); }
-
-#in_fft, #filter_curve, #out_fft {
-	display: block;
-	margin: auto;
-	border: 3px solid #888;
-}
-
-.control_mode { display: none; }
-
-button, input, select {
-	background-color: #333;
-	color: #FFF;
-	border: solid #AAA 2px;
-	margin: 2px;
-	border-radius: 5px;
-}
-
-input[type="range"] {
-	width: max-content;
-}
-
-.fullscreen_block {
-	display: flex;
-	justify-content:center;
-	align-items:center;
-	background: black;
-	
-	z-index: 99;
-	position: fixed;
-	top: 0;
-	left: 0;
-	bottom: 0;
-	right: 0;
-	width: 100%;
-	height: 100%;
-}
-
-.option_line {
-	width: 100%;
-	white-space: nowrap;
-}
-
-#start_button {
-	max-width: 90vw;
-	font-size: 3em;
-}
-
-.circ_formula {
-	display: none;
-}
-
-@keyframes fileblink {
-	from {border-color:#3ee;}
-	to {border-color:#e3e;}
-}
-
-.helptext {
-	cursor: help;
-	text-decoration: underline dashed;
-}
-
-.scale_line {
-	display:inline-block;
-	margin: 4px;
-	width: 93%;
-	height: 2px;
-	border-bottom: 3px dashed #eee;
-}</style>
+	<link rel="stylesheet" href="filterfun.css">
 </head>
 <body>
 	<div id="ui_div">
 		<div id="curves_div">
+			<div id="circ_div">
+			<canvas width=128 height=128 id="in_osc"></canvas>
 			<img id="circ_img" src="" title="">
+			<canvas width=128 height=128 id="out_osc"></canvas>
+			</div>
 			<br>
 			
 			<p id="lp_formula" class="circ_formula">fc=1/(2πRC)<br>Uout(f)=</p>
@@ -123,7 +29,7 @@ input[type="range"] {
 			<p>Cutoff: <span id="cutoff_freq_text"></span></p>
 			<br>
 			<table>
-			<tr><td></td><td>0Hz<span class="scale_line"> </span><span id="max_freq_text">?</span>Hz</td></tr>
+			<tr><td></td><td><span class="scale_left">0Hz</span><span class="scale_line"> </span><span class="scale_right"><span id="max_freq_text">?</span>Hz</span></td></tr>
 			<tr><td onclick="helpme('in_curve');" class="helptext">Input:</td><td><canvas id="in_fft" width=256 height=64></canvas></td></tr>
 			<tr><td onclick="helpme('filter_curve');" class="helptext">Filter:</td><td><canvas id="filter_curve" width=256 height=64></canvas></td></tr>
 			<tr><td onclick="helpme('out_curve');" class="helptext">Output:</td><td><canvas id="out_fft" width=256 height=64></canvas></td></tr>
@@ -229,9 +135,14 @@ const cnv_filt = document.getElementById('filter_curve');
 const ctx_filt = cnv_filt.getContext('2d');
 const cnv_out = document.getElementById('out_fft');
 const ctx_out = cnv_out.getContext('2d');
+const cnv_osc_in = document.getElementById('in_osc');
+const ctx_osc_in = cnv_osc_in.getContext('2d');
+const cnv_osc_out = document.getElementById('out_osc');
+const ctx_osc_out = cnv_osc_out.getContext('2d');
 //vc.imageSmoothingEnabled = false;
-ctx_in.lineWidth=ctx_filt.lineWidth=ctx_out.lineWidth = 1;
-ctx_in.strokeStyle=ctx_filt.strokeStyle=ctx_out.strokeStyle = 'white';
+ctx_osc_in.lineWidth=ctx_osc_out.lineWidth=ctx_in.lineWidth=ctx_filt.lineWidth=ctx_out.lineWidth = 1;
+ctx_osc_in.strokeStyle=ctx_osc_out.strokeStyle=ctx_in.strokeStyle=ctx_filt.strokeStyle=ctx_out.strokeStyle = 'white';
+ctx_osc_in.fillStyle = ctx_osc_out.fillStyle = 'black';
 
 //audio main
 const ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -333,7 +244,7 @@ const filters = {
 			return (1/Z /*<-- I*/) * Xc; //falls from 1 to 0
 		},
 		cutoff: function(r,c,l){return 1/(2*PI*r*c);},
-		img: ""
+		img: "circ_img/rc_lp.png"
 	},
 	'hp': {
 		mode: 'highpass',
@@ -343,32 +254,32 @@ const filters = {
 			return (1/Z /*<-- I*/) * r;
 		},
 		cutoff: function(r,c,l){return 1/(2*PI*r*c);},
-		img: ""
+		img: "circ_img/rc_lp.png"
 	},
 	'bp': {
 		mode: 'bandpass',
 		atten_f: function(f,r,c,l){},
 		cutoff: function(r,c,l){},
 		formula: "",
-		img: ""
+		img: "circ_img/bp.png"
 	},
 	'bs': {
 		mode: 'notch',
 		atten_f: function(f,r,c,l){},
 		cutoff: function(r,c,l){},
-		img: ""
+		img: "circ_img/n.png"
 	},
 	'ls': {
 		mode: 'lowshelf',
 		atten_f: function(f,r,c,l){},
 		cutoff: function(r,c,l){},
-		img: ""
+		img: "circ_img/ls.png"
 	},
 	'hs': {
 		mode: 'highshelf',
 		atten_f: function(f,r,c,l){},
 		cutoff: function(r,c,l){},
-		img: ""
+		img: "circ_img/hs.png"
 	}
 };
 
@@ -479,6 +390,8 @@ function drawFFT() {
 	ctx_in.fillStyle = ctx_out.fillStyle = 'black';
 	ctx_in.fillRect(0,0,cnv_in.width,cnv_in.height);
 	ctx_out.fillRect(0,0,cnv_out.width,cnv_out.height);
+	ctx_osc_in.fillRect(0,0,cnv_osc_in.width,cnv_osc_in.height);
+	ctx_osc_out.fillRect(0,0,cnv_osc_out.width,cnv_osc_out.height);
 	
 	ctx_in.strokeStyle = ctx_out.strokeStyle = 'white';
 
@@ -488,20 +401,65 @@ function drawFFT() {
 	audioAnalyzer.getByteFrequencyData(in_data);	
 	let out_data = new Uint8Array(audioAnalyzerOut.frequencyBinCount);
 	audioAnalyzerOut.getByteFrequencyData(out_data);
+	let in_osc_data = new Uint8Array(audioAnalyzer.frequencyBinCount);
+	audioAnalyzer.getByteTimeDomainData(in_osc_data);	
+	let out_osc_data = new Uint8Array(audioAnalyzerOut.frequencyBinCount);
+	audioAnalyzerOut.getByteTimeDomainData(out_osc_data);
 
 	ctx_in.beginPath();
 	for (let i=0; i<audioAnalyzer.frequencyBinCount; i++){
-		if (i == 0) ctx_out.moveTo(0, in_data[i]);
-		else ctx_in.lineTo((use_log_scale.checked ? Math.log2(i)*scale_fac : i*scale_fac), mapfloat(in_data[i], 0, 255, cnv_in.height, 0));
+		let y = mapfloat(in_data[i], 0, 255, cnv_in.height, 0);
+		if (i == 0) ctx_in.moveTo(0, y);
+		else ctx_in.lineTo((use_log_scale.checked ? Math.log2(i)*scale_fac : i*scale_fac), y);
 	}
 	ctx_in.stroke();
 	
 	ctx_out.beginPath();
 	for (let i=0; i<audioAnalyzerOut.frequencyBinCount; i++){
-		if (i == 0) ctx_out.moveTo(0, in_data[i]);
-		else ctx_out.lineTo((use_log_scale.checked ? Math.log2(i)*scale_fac : i*scale_fac), mapfloat(out_data[i], 0, 255, cnv_out.height, 0));
+		let y = mapfloat(out_data[i], 0, 255, cnv_out.height, 0)
+		if (i == 0) ctx_out.moveTo(0, y);
+		else ctx_out.lineTo((use_log_scale.checked ? Math.log2(i)*scale_fac : i*scale_fac), y);
 	}
 	ctx_out.stroke();
+	
+	
+	//oscilloscopes
+	let osc_scale = 8;
+	//let osc_scale = (audioAnalyzerOut.frequencyBinCount/cnv_osc_out.width)/2;
+	let max_x=0, max_y=0;
+	/*for (let i=0; i<audioAnalyzer.frequencyBinCount-cnv_osc_out.width; i++){ //find high spot
+		if(in_osc_data[i] >= max_y) {
+			max_y = in_osc_data[i];
+			max_x=i;
+		}
+	}*/
+	max_x=Math.min(max_x, (audioAnalyzer.frequencyBinCount-1)-cnv_osc_in.width);
+	ctx_osc_in.beginPath();
+	for (let x=max_x; x<max_x+cnv_osc_in.width; x++){
+		let y = mapfloat(in_osc_data[x*osc_scale], 0, 255, cnv_osc_in.height-1, 0);
+		//if ((max_x+cnv_osc_in.width)-x < 16) y = ((y+128)*(((max_x+cnv_osc_in.width)-x+1)/16))-128; //"suck in effect"
+		if (x == 0) ctx_osc_in.moveTo(0, y);
+		else ctx_osc_in.lineTo(x-max_x, y);
+	}
+	ctx_osc_in.stroke();
+	
+	max_x=0;
+	max_y=0;
+	/*for (let i=0; i<audioAnalyzerOut.frequencyBinCount-cnv_osc_out.width; i++){ //find high spot
+		if(in_osc_data[i] >= max_y) {
+			max_y = in_osc_data[i];
+			max_x=i;
+		}
+	}*/
+	ctx_osc_out.beginPath();
+	for (let x=max_x; x<max_x+cnv_osc_out.width; x++){
+		let y = mapfloat(out_osc_data[x*osc_scale], 0, 255, cnv_osc_out.height-1, 0);
+		//if (x < 16) y = ((y128)*(x+1)/16); //"expand out effect"
+		if (x == 0) ctx_osc_out.moveTo(0, y);
+		else ctx_osc_out.lineTo(x-max_x, y);
+	}
+	ctx_osc_out.stroke();
+	
 	
 	frames_this_sec++;
 	requestAnimationFrame(drawFFT);
@@ -510,7 +468,7 @@ drawFFT();
 
 setInterval(function(){
 	fps_counter.innerText = "FPS: " + frames_this_sec;
-	fps_counter.style.color = "hsl(" + Math.min(Math.max(mapfloat(frames_this_sec, 10, 60, 0, 180), 0), 180) + ", 100%, 50%)";
+	fps_counter.style.color = "hsl(" + Math.min(Math.max(mapfloat(frames_this_sec, 20, 60, 0, 180), 0), 180) + ", 100%, 50%)";
 	frames_this_sec=0;
 },1000);
 
