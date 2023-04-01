@@ -52,7 +52,7 @@
 			<hr>
 			<div class="fullscreen_block"> <button id="start_button" onclick="ac.resume(); this.parentElement.remove();">CLICK TO START</button> <noscript><br>JS Required</noscript></div>
 			<p id="fps_counter">FPS: ??</p>
-			<br>
+			<hr>
 			
 			<label for="filter_circ">Circuit: </label><select onchange="selCirc();" id="filter_circ" name="filter_circ" type="select" autocomplete="off">
 				<option value="lp">Low-pass</option>
@@ -70,17 +70,22 @@
 			<span class="option_line"><label for="l_val">Inductance: </label><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="l_val" autocomplete="off"> <span id="l_val_text">?</span></span>
 			<br>
 			</div>-->
-			<br>
-			<br>
+			<hr>
 
+			<span class="option_line"><label for="osc_trig">Trigger Scopes: </label><input type="checkbox" id="osc_trig" checked="true" autocomplete="off"></span>
+			<br>			
+			<span class="option_line"><label for="osc_trig_side">Trigger Scopes on Output Wave: </label><input type="checkbox" id="osc_trig_side" autocomplete="off"></span>
+			<hr>
+			
 			<span class="option_line"><label for="use_log_scale">Use log2 scale: </label><input type="checkbox" id="use_log_scale" onchange="drawCurves()" autocomplete="off"></span>
 			<br>
 			<span class="option_line"><label for="fft_smoothing">FFT Smoothing: </label><input type="range" min="0.1" value="0.1" max="9" step="0.1" onchange="fft_smoothing_text.innerText=(audioAnalyzer.smoothingTimeConstant=audioAnalyzerOut.smoothingTimeConstant=Math.pow(this.value,2)/100).toFixed(2);" id="fft_smoothing" autocomplete="off"> <span id="fft_smoothing_text">?</span></span>
-			<br>
+			<hr>
 			<span class="option_line"><label for="audio_gain">Gain: </label><input type="range" min="0.1" value="1" max="4" step="0.1" onchange="audio_gain_text.innerText=audioGain.gain.value=this.value;" id="audio_gain" autocomplete="off"> <span id="audio_gain_text">1</span></span>
 			<br>
 			<span class="option_line"><label for="playback_vol">Playback Volume: </label><input type="range" min="0" value="1" max="2" step="0.1" onchange="playback_vol_text.innerText=audioGainO.gain.value=this.value;" id="playback_vol" autocomplete="off"> <span id="playback_vol_text">1</span></span>
-			<br>
+			<hr>
+			
 			<label for="input_mode">Mode: </label><select onchange="selSource();" id="input_mode" name="input_mode" type="select" autocomplete="off">
 				<option value="file">File</option>
 				<option value="mic">Mic</option>
@@ -401,6 +406,7 @@ selCirc();
 
 
 //draw FFT
+var fft_raf;
 var frames_this_sec = 0;
 function drawFFT() {
 	ctx_in.fillStyle = ctx_out.fillStyle = 'black';
@@ -442,14 +448,20 @@ function drawFFT() {
 	//oscilloscopes
 	let osc_scale = 8;
 	//let osc_scale = (audioAnalyzerOut.frequencyBinCount/cnv_osc_out.width)/2;
-	let max_x=0, max_y=0;
-	for (let i=0; i<128/*audioAnalyzer.frequencyBinCount-(cnv_osc_out.width*osc_scale)*/; i++){ //find high spot
-		if(in_osc_data[i] >= max_y) {
-			max_y = in_osc_data[i];
-			max_x=i;
+	let max_x=0;
+	if (osc_trig.checked) { //if supposed to trigger
+		let max_y=0;
+		let t = osc_trig_side.checked;
+		for (let i=audioAnalyzer.frequencyBinCount-(cnv_osc_out.width*osc_scale)-1024 /*look only in the last 1024 samples*/; i<audioAnalyzer.frequencyBinCount-(cnv_osc_out.width*osc_scale); i++){ //find high spot
+			if((t ? out_osc_data[i] : in_osc_data[i]) >= max_y) {
+				max_y = t ? out_osc_data[i] : in_osc_data[i];
+				max_x=i;
+			}
 		}
+		max_x=Math.min(max_x, (audioAnalyzer.frequencyBinCount-1)-cnv_osc_in.width);
 	}
-	max_x=Math.min(max_x, (audioAnalyzer.frequencyBinCount-1)-cnv_osc_in.width);
+	else max_x = audioAnalyzer.frequencyBinCount-(cnv_osc_out.width*osc_scale); //else just use the last samples in buffer               
+	
 	ctx_osc_in.beginPath();
 	for (let x=0; x<cnv_osc_in.width; x++){
 		let y = mapfloat(in_osc_data[(x*osc_scale)+max_x], 0, 255, cnv_osc_in.height-1, 0);
@@ -459,14 +471,6 @@ function drawFFT() {
 	}
 	ctx_osc_in.stroke();
 	
-	/*max_x=0;
-	max_y=0;
-	for (let i=0; i<audioAnalyzerOut.frequencyBinCount-(cnv_osc_out.width*osc_scale); i++){ //find high spot
-		if(in_osc_data[i] >= max_y) {
-			max_y = in_osc_data[i];
-			max_x=i;
-		}
-	}*/
 	ctx_osc_out.beginPath();
 	for (let x=0; x<cnv_osc_out.width; x++){
 		let y = mapfloat(out_osc_data[(x*osc_scale)+max_x], 0, 255, cnv_osc_out.height-1, 0);
@@ -478,7 +482,7 @@ function drawFFT() {
 	
 	
 	frames_this_sec++;
-	requestAnimationFrame(drawFFT);
+	fft_raf = requestAnimationFrame(drawFFT);
 }
 drawFFT();
 
