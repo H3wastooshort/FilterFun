@@ -124,13 +124,13 @@ input[type="range"] {
 	height: 128px;
 }
 
-#circ_div canvas {
-	height: 100%;
+#circ_img {
+	image-rendering: pixelated;
 }
 
 #circ_div canvas, #circ_img {
-	image-rendering: pixelated;
 	height: 100%;
+	width: 100%;
 }
 
 #circ_params input {

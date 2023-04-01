@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 	<title>FilterFun</title>
 	<meta charset="utf-8"/>
@@ -272,13 +272,13 @@ const filters = {
 		atten_f: function(f,r,c,l){},
 		cutoff: function(r,c,l){},
 		formula: "",
-		img: "circ_img/bp.png"
+		img: "circ_img/rcl_bp.png"
 	},
 	'bs': {
 		mode: 'notch',
 		atten_f: function(f,r,c,l){},
 		cutoff: function(r,c,l){},
-		img: "circ_img/n.png"
+		img: "circ_img/rcl_n.png"
 	},
 	'ls': {
 		mode: 'lowshelf',
@@ -374,6 +374,11 @@ function drawCurves() {
 function resChange() {
 	cnv_in.width = cnv_filt.width = cnv_out.width = curves_div.clientWidth;
 	cnv_in.height = cnv_filt.height = cnv_out.height = Math.floor(curves_div.clientHeight / 4);
+	/*cnv_in.width = cnv_filt.width = cnv_out.width = cnv_out.clientWidth;
+	cnv_in.height = cnv_filt.height = cnv_out.height = cnv_out.clientHeight;*/
+
+	//circ_div.style.height=(cnv_osc_in.width=cnv_osc_in.height=cnv_osc_out.width=cnv_osc_out.height=circ_img.height=(curves_div.clientHeight/4)-((curves_div.clientHeight/4)%128))+"px";
+
 	drawCurves();
 }
 resChange();
