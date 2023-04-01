@@ -13,9 +13,9 @@
 	<div id="ui_div">
 		<div id="curves_div">
 			<div id="circ_div">
-			<canvas width=128 height=128 id="in_osc"></canvas>
+			<canvas width=256 height=128 id="in_osc"></canvas>
 			<img id="circ_img" src="" title="">
-			<canvas width=128 height=128 id="out_osc"></canvas>
+			<canvas width=256 height=128 id="out_osc"></canvas>
 			</div>
 			<br>
 			
@@ -29,14 +29,11 @@
 			<p>Cutoff: <span id="cutoff_freq_text"></span></p>
 			<br>
 			
-			<div id="circ_params">
-			<span class="option_line"><label for="r_val">Resistance: </label><input type="range" min="1" value="50" max="1000" step="0.1" onchange="drawCurves();" id="r_val" autocomplete="off"> <span id="r_val_text">?</span></span>
-			<br>
-			<span class="option_line"><label for="c_val">Capacitance: </label><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="c_val" autocomplete="off"> <span id="c_val_text">?</span></span>
-			<br>
-			<span class="option_line"><label for="l_val">Inductance: </label><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="l_val" autocomplete="off"> <span id="l_val_text">?</span></span>
-			<br>
-			</div>
+			<table id="circ_params">
+			<tr><td><label for="r_val">Resistance:</label> </td><td><span id="r_val_text">?</span><td class="circ_param_slider"><input type="range" min="1" value="50" max="1000" step="0.1" onchange="drawCurves();" id="r_val" autocomplete="off"></td></tr>
+			<tr><td><label for="c_val">Capacitance:</label> </td><td><span id="c_val_text">?</span></td></td><td class="circ_param_slider"><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="c_val" autocomplete="off"></td></tr>
+			<tr><td><label for="l_val">Inductance:</label> </td></td><td><span id="l_val_text">?</span></td><td class="circ_param_slider"><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="l_val" autocomplete="off"></tr>
+			</table>
 			<br>
 			
 			<table>
@@ -71,7 +68,9 @@
 			<br>
 			</div>-->
 			<hr>
-
+			
+			<span class="option_line"><label for="scope_scale">Scope X Scale: </label><input type="range" min="1" value="16" max="32" step="1" id="scope_scale" autocomplete="off"></span>
+			<br>
 			<span class="option_line"><label for="osc_trig">Trigger Scopes: </label><input type="checkbox" id="osc_trig" checked="true" autocomplete="off"></span>
 			<br>			
 			<span class="option_line"><label for="osc_trig_side">Trigger Scopes on Output Wave: </label><input type="checkbox" id="osc_trig_side" autocomplete="off"></span>
@@ -137,7 +136,7 @@ window.addEventListener("error", (e) => {
 
 const helptexts = {
 	'in_curve': "This graph shows the amplitude of frequencies in the input signal.",
-	'filter_curve': "This curve shows the filter response. \n\n\nThe white trace shows the behavior of the filter in real life. \n\nThe cyan trace shows how the audio is actually filtered, because JS WebAudio can't do that type of filter perfectly.\n\nThe vertical line shows the cutoff frequency.",
+	'filter_curve': "This curve shows the filter response. \n\n\nThe white trace shows the behavior of the filter in real life. \n\nThe cyan trace (if present) shows how the audio filter is simulated, because JavaScript's WebAudio API can't do that type of filter perfectly.\n\nThe red vertical line shows the cutoff frequency.",
 	'out_curve': "This graph shows the amplitude of frequencies of the signal after it has been filtered."
 };
 function helpme(tag) {
@@ -382,7 +381,9 @@ function resChange() {
 	/*cnv_in.width = cnv_filt.width = cnv_out.width = cnv_out.clientWidth;
 	cnv_in.height = cnv_filt.height = cnv_out.height = cnv_out.clientHeight;*/
 
-	//circ_div.style.height=(cnv_osc_in.width=cnv_osc_in.height=cnv_osc_out.width=cnv_osc_out.height=circ_img.height=(curves_div.clientHeight/4)-((curves_div.clientHeight/4)%128))+"px";
+	/*circ_div.style.height=(cnv_osc_in.height=cnv_osc_out.height=circ_img.height=(curves_div.clientHeight/4)-((curves_div.clientHeight/4)%128))+"px";
+	cnv_osc_in.width=cnv_osc_out.width=cnv_osc_in.height*2;
+	osc_scale.max=*/
 
 	drawCurves();
 }
@@ -446,7 +447,7 @@ function drawFFT() {
 	
 	
 	//oscilloscopes
-	let osc_scale = 8;
+	let osc_scale = scope_scale.value;
 	//let osc_scale = (audioAnalyzerOut.frequencyBinCount/cnv_osc_out.width)/2;
 	let max_x=0;
 	if (osc_trig.checked) { //if supposed to trigger

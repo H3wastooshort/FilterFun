@@ -134,5 +134,17 @@ input[type="range"] {
 }
 
 #circ_params input {
-	width: 50%;
+	width: 100%;
+}
+
+#circ_params {
+	width: 100%;
+}
+
+#circ_params span, #circ_params td{
+	width: min-content;
+}
+
+#circ_params .circ_param_slider {
+	width: 100% !important;
 }
