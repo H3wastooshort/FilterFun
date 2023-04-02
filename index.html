@@ -19,10 +19,10 @@
 			</div>
 			<br>
 			
-			<p id="lp_formula" class="circ_formula">fc=1/(2πRC)<br>Uout(f)=</p>
-			<p id="hp_formula" class="circ_formula">fc=1/(2πRC)<br></p>
-			<p id="bp_formula" class="circ_formula"></p>
-			<p id="bs_formula" class="circ_formula"></p>
+			<p id="lp_formula" class="circ_formula">f=1/(2πRC)<br></p>
+			<p id="hp_formula" class="circ_formula">f=1/(2πRC)<br></p>
+			<p id="bp_formula" class="circ_formula">)<br>Q=</p>
+			<p id="bs_formula" class="circ_formula">f_c=<br>Q=</p>
 			<p id="ls_formula" class="circ_formula"></p>
 			<p id="hs_formula" class="circ_formula"></p>
 			
@@ -30,9 +30,9 @@
 			<br>
 			
 			<table id="circ_params">
-			<tr><td><label for="r_val">Resistance:</label> </td><td><span id="r_val_text">?</span><td class="circ_param_slider"><input type="range" min="1" value="50" max="1000" step="0.1" onchange="drawCurves();" id="r_val" autocomplete="off"></td></tr>
-			<tr><td><label for="c_val">Capacitance:</label> </td><td><span id="c_val_text">?</span></td></td><td class="circ_param_slider"><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="c_val" autocomplete="off"></td></tr>
-			<tr><td><label for="l_val">Inductance:</label> </td></td><td><span id="l_val_text">?</span></td><td class="circ_param_slider"><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" id="l_val" autocomplete="off"></tr>
+			<tr><td><label for="r_val">Resistance:</label> </td><td><span id="r_val_text">?</span><td class="circ_param_slider"><input type="range" min="1" value="50" max="1000" step="0.1" onchange="drawCurves();" onpointerdown="mousedowns.r=true;drawCurves();" onpointerup="mousedowns.r=false;" id="r_val" autocomplete="off"></td></tr>
+			<tr><td><label for="c_val">Capacitance:</label> </td><td><span id="c_val_text">?</span></td></td><td class="circ_param_slider"><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" onpointerdown="mousedowns.c=true;drawCurves();" onpointerup="mousedowns.c=false;" id="c_val" autocomplete="off"></td></tr>
+			<tr><td><label for="l_val">Inductance:</label> </td></td><td><span id="l_val_text">?</span></td><td class="circ_param_slider"><input type="range" min="0.000000001" value="0.000001" max="0.00001" step="0.000000001" onchange="drawCurves();" onpointerdown="mousedowns.l=true;drawCurves();" onpointerup="mousedowns.l=false;" id="l_val" autocomplete="off"></tr>
 			</table>
 			<br>
 			
@@ -271,60 +271,80 @@ const filters = {
 		cutoff: function(r,c,l){return 1/(2*PI*r*c);},
 		img: "circ_img/rc_hp.png"
 	},
+	/*'lp_l': {
+		mode: 'lowpass',
+		atten_f: function(f,r,c,l){
+			let Xl = 2*PI*f*l;
+			let Z = pythag_hyp(r,Xl);
+			return (1/Z) * Xc; //falls from 1 to 0
+		},
+		cutoff: function(r,c,l){return r/(2*PI*l);},
+		img: "circ_img/rl_lp.png"
+	},*/
+	'hp_l': {
+		mode: 'highpass',
+		atten_f: function(f,r,c,l){
+			let Xl = 2*PI*f*l;
+			let Z = pythag(Xl,r);
+			return (1/Z /*<-- I*/) * r;
+		},
+		cutoff: function(r,c,l){return r/(2*PI*l);},
+		img: "circ_img/rl_hp.png"
+	},
 	'bp': {
 		mode: 'bandpass',
-		atten_f: function(f,r,c,l){},
-		cutoff: function(r,c,l){},
-		formula: "",
+		atten_f: function(f,r,c,l){return 0;},
+		cutoff: function(r,c,l){return Math.sqrt(filters.hp_l.cutoff(r,c,l)*filters.lp.cutoff(r,c,l));},
+		q_factor: function(r,c,l){return r*Math.sqrt(c/l);},
 		img: "circ_img/rcl_bp.png"
 	},
 	'bs': {
 		mode: 'notch',
-		atten_f: function(f,r,c,l){},
-		cutoff: function(r,c,l){},
+		atten_f: function(f,r,c,l){return 0;},
+		cutoff: function(r,c,l){return Math.sqrt(filters.hp_l.cutoff(r,c,l)*filters.lp.cutoff(r,c,l));},
+		q_factor: function(r,c,l){return (1/r)*Math.sqrt(l/c)},
 		img: "circ_img/rcl_n.png"
 	},
 	'ls': {
 		mode: 'lowshelf',
-		atten_f: function(f,r,c,l){},
-		cutoff: function(r,c,l){},
+		atten_f: function(f,r,c,l){return 0;},
+		cutoff: function(r,c,l){return 0;},
 		img: "circ_img/ls.png"
 	},
 	'hs': {
 		mode: 'highshelf',
-		atten_f: function(f,r,c,l){},
-		cutoff: function(r,c,l){},
+		atten_f: function(f,r,c,l){return 0;},
+		cutoff: function(r,c,l){return 0;},
 		img: "circ_img/hs.png"
 	}
 };
+
+var mousedowns = {'r':false,'c':false,'l':false,};
 
 function drawCurves() {
 	r_val_text.innerText = (r_val.value * 1).toFixed(2) + "Ω";
 	c_val_text.innerText = (c_val.value * 1E6).toFixed(2) + "µF";
 	l_val_text.innerText = (l_val.value * 1E6).toFixed(2) + "µH";
-	cutoff_freq_text.innerText = (audioFilter.frequency.value = filters[filter_circ.value].cutoff(r_val.value,c_val.value,l_val.value)).toFixed(2) + 'Hz';
-	
+
 	audioFilter.Q.value = 0;
-
-	ctx_filt.fillStyle = 'black';
-	ctx_filt.fillRect(0,0,cnv_in.width,cnv_in.height);
-
-	let scale_fac = (cnv_out.width * Math.log(2)) / Math.log(cnv_out.width); //log2(w)*x = w
-
-
-	ctx_filt.fillStyle = 'crimson';
-		switch (filter_circ.value) {
-		//mark filtered area
-		case "lp":
-			break;
-		
+	switch (filter_circ.value) {
+		case "hp_l":
+			l_val.disabled=false;
+		case "lp":		
 		case "hp":
+			l_val.disabled=true;
+			c_val.max=l_val.max=0.00001;
+			c_val.min=l_val.min=0.000000001;
+			r_val.max=1000;
 			break;
 		
 		case "bp":
-			break;
-		
 		case "bs":
+			l_val.disabled=false;
+			c_val.max=l_val.max=0.0001;
+			c_val.min=l_val.min=0.00001;
+			r_val.max=100;
+			audioFilter.Q.value = filters[filter_circ.value].q_factor(r_val.value,c_val.value,l_val.value);
 			break;
 		
 		case "ls":
@@ -334,6 +354,13 @@ function drawCurves() {
 			break;
 
 	}
+	cutoff_freq_text.innerText = (audioFilter.frequency.value = filters[filter_circ.value].cutoff(r_val.value,c_val.value,l_val.value)).toFixed(2) + 'Hz';
+	
+
+	ctx_filt.fillStyle = 'black';
+	ctx_filt.fillRect(0,0,cnv_in.width,cnv_in.height);
+
+	let scale_fac = (cnv_out.width * Math.log(2)) / Math.log(cnv_out.width); //log2(w)*x = w
 	ctx_filt.fillStyle = 'black';
 	
 
@@ -373,10 +400,12 @@ function drawCurves() {
 	ctx_filt.stroke();
 	
 	ctx_filt.strokeStyle = 'white';
+	
+	if (mousedowns.r || mousedowns.c || mousedowns.l) requestAnimationFrame(drawCurves);
 }
 
 function resChange() {
-	cnv_in.width = cnv_filt.width = cnv_out.width = curves_div.clientWidth;
+	cnv_in.width = cnv_filt.width = cnv_out.width = curves_div.clientWidth - document.getElementsByClassName("helptext")[0].clientWidth*2;
 	cnv_in.height = cnv_filt.height = cnv_out.height = Math.floor(curves_div.clientHeight / 4);
 	/*cnv_in.width = cnv_filt.width = cnv_out.width = cnv_out.clientWidth;
 	cnv_in.height = cnv_filt.height = cnv_out.height = cnv_out.clientHeight;*/

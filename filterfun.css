@@ -124,13 +124,14 @@ input[type="range"] {
 	height: 128px;
 }
 
-#circ_img {
-	image-rendering: pixelated;
-}
-
 #circ_div canvas, #circ_img {
 	height: 100%;
-	width: 100%;
+	max-width: 100%;
+}
+
+#circ_img {
+	image-rendering: pixelated;
+	aspect-ratio: 1/1;
 }
 
 #circ_params input {
@@ -138,7 +139,7 @@ input[type="range"] {
 }
 
 #circ_params {
-	width: 100%;
+	width: 95%;
 }
 
 #circ_params span, #circ_params td{
