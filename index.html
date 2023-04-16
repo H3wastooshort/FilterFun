@@ -19,10 +19,10 @@
 			</div>
 			<br>
 			
-			<p id="lp_formula" class="circ_formula">f=1/(2πRC)<br></p>
-			<p id="hp_formula" class="circ_formula">f=1/(2πRC)<br></p>
-			<p id="bp_formula" class="circ_formula">)<br>Q=</p>
-			<p id="bs_formula" class="circ_formula">f_c=<br>Q=</p>
+			<p id="lp_formula" class="circ_formula">f=1/(2πRC)</p>
+			<p id="hp_formula" class="circ_formula">f=1/(2πRC)</p>
+			<p id="bp_formula" class="circ_formula">f=1/(2πRC)<br>Q=R*sqrt(C/L)</p>
+			<p id="bs_formula" class="circ_formula">f=1/(2πRC)<br>Q=(1/R)*sqrt(C/L)</p>
 			<p id="ls_formula" class="circ_formula"></p>
 			<p id="hs_formula" class="circ_formula"></p>
 			
@@ -56,8 +56,8 @@
 				<option value="hp">High-pass</option>
 				<option value="bp">Band-pass</option>
 				<option value="bs">Band-stop/Notch</option>
-				<option value="ls">Low-shelf</option>
-				<option value="hs">High-shelf</option>
+				<!--<option value="ls">Low-shelf</option>
+				<option value="hs">High-shelf</option>-->
 			</select>
 			<!--<div id="circ_params">
 			<span class="option_line"><label for="r_val">Resistance: </label><input type="range" min="1" value="50" max="1000" step="0.1" onchange="drawCurves();" id="r_val" autocomplete="off"> <span id="r_val_text">?</span></span>
@@ -250,7 +250,7 @@ function pythag_hyp(a,b) {return Math.sqrt(Math.pow(a,2) + Math.pow(b,2));}
 function pythag(a,b) {return Math.sqrt(Math.pow(a,2) + Math.pow(b,2));}
 
 //circ implementations
-const filters = {
+const filters = { //TODO: Make attenuation scales dB
 	'lp': {
 		mode: 'lowpass',
 		atten_f: function(f,r,c,l){
@@ -271,16 +271,16 @@ const filters = {
 		cutoff: function(r,c,l){return 1/(2*PI*r*c);},
 		img: "circ_img/rc_hp.png"
 	},
-	/*'lp_l': {
+	'lp_l': { //does not really work IRL
 		mode: 'lowpass',
 		atten_f: function(f,r,c,l){
 			let Xl = 2*PI*f*l;
 			let Z = pythag_hyp(r,Xl);
-			return (1/Z) * Xc; //falls from 1 to 0
+			return (1/Z) * Xl; //falls from 1 to 0
 		},
 		cutoff: function(r,c,l){return r/(2*PI*l);},
 		img: "circ_img/rl_lp.png"
-	},*/
+	},
 	'hp_l': {
 		mode: 'highpass',
 		atten_f: function(f,r,c,l){
@@ -301,7 +301,7 @@ const filters = {
 	'bs': {
 		mode: 'notch',
 		atten_f: function(f,r,c,l){return 0;},
-		cutoff: function(r,c,l){return Math.sqrt(filters.hp_l.cutoff(r,c,l)*filters.lp.cutoff(r,c,l));},
+		cutoff: function(r,c,l){return Math.sqrt(filters.lp_l.cutoff(r,c,l)*filters.hp.cutoff(r,c,l));},
 		q_factor: function(r,c,l){return (1/r)*Math.sqrt(l/c)},
 		img: "circ_img/rcl_n.png"
 	},
@@ -420,15 +420,17 @@ resChange();
 window.addEventListener('resize', resChange);
 
 //sel curve
+const circ_formulas = [lp_formula,hp_formula,bp_formula,bs_formula];
 function selCirc() {
+	circ_formulas.forEach(x=>{x.style.display='none';});
+	
+	document.getElementById(filter_circ.value + '_formula').style.display = 'initial';
 	
 	//change filter
 	audioFilter.type = filters[filter_circ.value].mode;
 	
 	//change img etc
 	circ_img.src = filters[filter_circ.value].img;
-	
-	
 	
 	drawCurves();
 }
