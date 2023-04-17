@@ -19,14 +19,14 @@
 			</div>
 			<br>
 			
-			<p id="lp_formula" class="circ_formula">f=1/(2πRC)</p>
-			<p id="hp_formula" class="circ_formula">f=1/(2πRC)</p>
-			<p id="bp_formula" class="circ_formula">f=1/(2πRC)<br>Q=R*sqrt(C/L)</p>
-			<p id="bs_formula" class="circ_formula">f=1/(2πRC)<br>Q=(1/R)*sqrt(C/L)</p>
+			<p id="lp_formula" class="circ_formula">f<sub>cutoff</sub>=1/(2πRC)</p>
+			<p id="hp_formula" class="circ_formula">f<sub>cutoff</sub>=1/(2πRC)</p>
+			<p id="bp_formula" class="circ_formula">f<sub>center</sub>=(f<sub>lp</sub>+f<sub>hp</sub>)/2<br>Q=R*sqrt(C/L)</p>
+			<p id="bs_formula" class="circ_formula">f<sub>center</sub>=(f<sub>lp</sub>+f<sub>hp</sub>)/2<br>Q=(1/R)*sqrt(C/L)</p>
 			<p id="ls_formula" class="circ_formula"></p>
 			<p id="hs_formula" class="circ_formula"></p>
 			
-			<p>Cutoff: <span id="cutoff_freq_text"></span></p>
+			<p>Center- or Cutoff-Frequency: <span id="cutoff_freq_text"></span></p>
 			<br>
 			
 			<table id="circ_params">
@@ -76,7 +76,8 @@
 			<span class="option_line"><label for="osc_trig_side">Trigger Scopes on Output Wave: </label><input type="checkbox" id="osc_trig_side" autocomplete="off"></span>
 			<hr>
 			
-			<span class="option_line"><label for="use_log_scale">Use log2 scale: </label><input type="checkbox" id="use_log_scale" onchange="drawCurves()" autocomplete="off"></span>
+			<span class="option_line"><label for="use_log_scale">Use log2 X scale: </label><input type="checkbox" id="use_log_scale" onchange="drawCurves()" autocomplete="off"></span>
+			<!--<span class="option_line"><label for="use_db_scale">Use dB filter curve Y scale: </label><input type="checkbox" id="use_db_scale" onchange="drawCurves()" autocomplete="off"></span>-->
 			<br>
 			<span class="option_line"><label for="fft_smoothing">FFT Smoothing: </label><input type="range" min="0.1" value="0.1" max="9" step="0.1" onchange="fft_smoothing_text.innerText=(audioAnalyzer.smoothingTimeConstant=audioAnalyzerOut.smoothingTimeConstant=Math.pow(this.value,2)/100).toFixed(2);" id="fft_smoothing" autocomplete="off"> <span id="fft_smoothing_text">?</span></span>
 			<hr>
@@ -377,7 +378,8 @@ function drawCurves() {
 	ctx_filt.strokeStyle = 'cyan';
 	ctx_filt.beginPath();
 	for (let i = 0; i < cnv_filt.width; i++) {
-		let y = cnv_filt.height - (atten[i] * cnv_filt.height * 0.75);
+		let y = cnv_filt.height - (atten[i] * cnv_filt.height * 0.85);
+		
 		if (i == 0) ctx_filt.moveTo(0,y);
 		else ctx_filt.lineTo(use_log_scale.checked ? Math.log2(i)*scale_fac : i, y);
 	}
@@ -387,7 +389,9 @@ function drawCurves() {
 	ctx_filt.strokeStyle = 'white';
 	ctx_filt.beginPath();
 	for (let f = 0; f < cnv_filt.width; f++) {
-		let y = cnv_filt.height - filters[filter_circ.value].atten_f(f*hz_per_px, r_val.value, c_val.value, l_val.value)*cnv_filt.height;
+		let a = filters[filter_circ.value].atten_f(f*hz_per_px, r_val.value, c_val.value, l_val.value);
+		//if (use_db_scale.checked) a = -10 * Math.log10(1/a);
+		let y = cnv_filt.height - a * cnv_filt.height * 0.85;
 		if (f == 0) ctx_filt.moveTo(0,y);
 		else ctx_filt.lineTo(use_log_scale.checked ? Math.log2(f)*scale_fac : f ,y);
 	}
